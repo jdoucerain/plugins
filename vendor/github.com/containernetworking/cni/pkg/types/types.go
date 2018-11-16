@@ -65,6 +65,7 @@ type NetConf struct {
 	Capabilities map[string]bool `json:"capabilities,omitempty"`
 	IPAM         IPAM            `json:"ipam,omitempty"`
 	DNS          DNS             `json:"dns"`
+	VPP          VPP             `json:"vpp,omitempty"`
 
 	RawPrevResult map[string]interface{} `json:"prevResult,omitempty"`
 	PrevResult    Result                 `json:"-"`
@@ -72,6 +73,12 @@ type NetConf struct {
 
 type IPAM struct {
 	Type string `json:"type,omitempty"`
+}
+
+type VPP struct {
+	Address string `json:"address,omitempty"`
+	CommandsUp []string `json:"commandsup,omitempty"`
+	CommandsDown []string `json:"commandsdown,omitempty"`
 }
 
 // NetConfList describes an ordered list of networks.

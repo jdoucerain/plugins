@@ -32,7 +32,6 @@ import (
 	"github.com/containernetworking/plugins/pkg/ipam"
 	"github.com/containernetworking/plugins/pkg/ns"
         "github.com/google/goexpect"
-//        "github.com/google/goterm/term"
 	"github.com/vishvananda/netlink"
 )
 
@@ -159,7 +158,15 @@ func createVeth(conf *NetConf, ifName string, netns ns.NetNS) (*current.Interfac
                 return nil,fmt.Errorf("failed to alias veth to %q: %v", alias, err)
         }
 
-        e, _, err := expect.Spawn("/opt/cni/bin/telnet 0 5002", -1)
+	vppaddress := ""
+        if conf.VPP.Address != "" {
+		vppaddress = conf.VPP.Address
+                log.Printf("configured VPP address: %s", vppaddress)
+	} else {
+		vppaddress = "/opt/cni/bin/telnet 0 5002"
+        }
+
+        e, _, err := expect.Spawn(vppaddress, -1)
         if err != nil {
                 return nil,fmt.Errorf("failed to connect to vpp: %v", err)
         }
@@ -265,7 +272,15 @@ func cmdDel(args *skel.CmdArgs) error {
                 }
                 alias := dev.Attrs().Alias
 
-                e, _, err := expect.Spawn("/opt/cni/bin/telnet 0 5002", -1)
+		vppaddress := ""
+	        if n.VPP.Address != "" {
+			vppaddress = n.VPP.Address
+			log.Printf("configured VPP address: %s", vppaddress)
+		} else {
+			vppaddress = "/opt/cni/bin/telnet 0 5002"
+		}
+
+                e, _, err := expect.Spawn(vppaddress, -1)
                 if err != nil {
                         return fmt.Errorf("failed to connect to vpp: %v", err)
                 }
