@@ -18,11 +18,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"runtime"
-<<<<<<< HEAD
-	"strconv"
-=======
->>>>>>> 830616c7a640f01d7648be0eb23fbc735572ed58
+	"log"
+        "regexp"
+        "runtime"
+        "strconv"
+        "time"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
@@ -31,6 +31,8 @@ import (
 	"github.com/containernetworking/plugins/pkg/ip"
 	"github.com/containernetworking/plugins/pkg/ipam"
 	"github.com/containernetworking/plugins/pkg/ns"
+        "github.com/google/goexpect"
+//        "github.com/google/goterm/term"
 	"github.com/vishvananda/netlink"
 )
 
@@ -150,17 +152,32 @@ func createVeth(conf *NetConf, ifName string, netns ns.NetNS) (*current.Interfac
         if err := netlink.LinkSetUp(dev); err != nil {
                 return nil,fmt.Errorf("failed to set %q up: %v", dev.Attrs().Alias, err)
         }
-
-<<<<<<< HEAD
         nspid := netlink.NsPid(int(netns.Fd()))
-        alias := ifName + strconv.Itoa(int(nspid))
+        alias := ifName + "-" + strconv.Itoa(int(nspid))
         err = netlink.LinkSetAlias(dev, alias)
         if err != nil {
                 return nil,fmt.Errorf("failed to alias veth to %q: %v", alias, err)
         }
 
-=======
->>>>>>> 830616c7a640f01d7648be0eb23fbc735572ed58
+        e, _, err := expect.Spawn("/opt/cni/bin/telnet 0 5002", -1)
+        if err != nil {
+                return nil,fmt.Errorf("failed to connect to vpp: %v", err)
+        }
+        defer e.Close()
+
+        timeout := 10 * time.Second
+        vppRE := regexp.MustCompile("vpp# ")
+        e.Expect(vppRE, timeout)
+        cmd := "create host-interface name " + tmpPeerName + " "
+        e.Send(cmd + "\n")
+        result, _, _ := e.Expect(vppRE, timeout)
+        log.Printf("%s: result: %s\n", cmd, result)
+        cmd = "set int state host-" + tmpPeerName + " up"
+        e.Send(cmd + "\n")
+        result, _, _ = e.Expect(vppRE, timeout)
+        log.Printf("%s: result: %s\n", cmd, result)
+        e.Send("quit\n")
+
 	return veth, nil
 }
 
@@ -242,6 +259,26 @@ func cmdDel(args *skel.CmdArgs) error {
 	// There is a netns so try to clean up. Delete can be called multiple times
 	// so don't return an error if the device is already removed.
 	err = ns.WithNetNSPath(args.Netns, func(_ ns.NetNS) error {
+                dev, err := netlink.LinkByName(args.IfName)
+                if err != nil {
+                         return fmt.Errorf("failed to find interface %q: %v", args.IfName, err)
+                }
+                alias := dev.Attrs().Alias
+
+                e, _, err := expect.Spawn("/opt/cni/bin/telnet 0 5002", -1)
+                if err != nil {
+                        return fmt.Errorf("failed to connect to vpp: %v", err)
+                }
+                defer e.Close()
+                timeout := 10 * time.Second
+                vppRE := regexp.MustCompile("vpp# ")
+                e.Expect(vppRE, timeout)
+                cmd := "delete host-interface name " + alias
+                e.Send(cmd + "\n")
+                result, _, _ := e.Expect(vppRE, timeout)
+                log.Printf("%s: result: %s\n", cmd, result)
+                e.Send("quit\n")
+
 		if err := ip.DelLinkByName(args.IfName); err != nil {
 			if err != ip.ErrLinkNotFound {
 				return err
