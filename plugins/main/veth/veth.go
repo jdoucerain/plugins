@@ -19,6 +19,10 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+<<<<<<< HEAD
+	"strconv"
+=======
+>>>>>>> 830616c7a640f01d7648be0eb23fbc735572ed58
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
@@ -147,6 +151,16 @@ func createVeth(conf *NetConf, ifName string, netns ns.NetNS) (*current.Interfac
                 return nil,fmt.Errorf("failed to set %q up: %v", dev.Attrs().Alias, err)
         }
 
+<<<<<<< HEAD
+        nspid := netlink.NsPid(int(netns.Fd()))
+        alias := ifName + strconv.Itoa(int(nspid))
+        err = netlink.LinkSetAlias(dev, alias)
+        if err != nil {
+                return nil,fmt.Errorf("failed to alias veth to %q: %v", alias, err)
+        }
+
+=======
+>>>>>>> 830616c7a640f01d7648be0eb23fbc735572ed58
 	return veth, nil
 }
 
