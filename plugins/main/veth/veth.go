@@ -290,7 +290,7 @@ func cmdDel(args *skel.CmdArgs) error {
                 vppRE := regexp.MustCompile("vpp# ")
                 e.Expect(vppRE, timeout)
 	        command := ""
-		for _, each := range n.VPP.CommandsUp {
+		for _, each := range n.VPP.CommandsDown {
 			command = strings.Replace(each, "_INTERFACE_NAME_", alias, -1)
 			log.Printf("vpp command run :%s", command)
 			e.Send(command + "\n")
