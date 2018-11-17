@@ -22,6 +22,7 @@ import (
         "regexp"
         "runtime"
         "strconv"
+        "strings"
         "time"
 
 	"github.com/containernetworking/cni/pkg/skel"
@@ -175,14 +176,14 @@ func createVeth(conf *NetConf, ifName string, netns ns.NetNS) (*current.Interfac
         timeout := 10 * time.Second
         vppRE := regexp.MustCompile("vpp# ")
         e.Expect(vppRE, timeout)
-        cmd := "create host-interface name " + tmpPeerName + " "
-        e.Send(cmd + "\n")
-        result, _, _ := e.Expect(vppRE, timeout)
-        log.Printf("%s: result: %s\n", cmd, result)
-        cmd = "set int state host-" + tmpPeerName + " up"
-        e.Send(cmd + "\n")
-        result, _, _ = e.Expect(vppRE, timeout)
-        log.Printf("%s: result: %s\n", cmd, result)
+	command := ""
+	for _, each := range conf.VPP.CommandsUp {
+		command = strings.Replace(each, "_INTERFACE_NAME_", tmpPeerName, -1)
+		log.Printf("vpp command run :%s", command)
+		e.Send(command + "\n")
+		result, _, _ := e.Expect(vppRE, timeout)
+		log.Printf("%s: result: %s\n", command, result)
+	}
         e.Send("quit\n")
 
 	return veth, nil
@@ -288,10 +289,14 @@ func cmdDel(args *skel.CmdArgs) error {
                 timeout := 10 * time.Second
                 vppRE := regexp.MustCompile("vpp# ")
                 e.Expect(vppRE, timeout)
-                cmd := "delete host-interface name " + alias
-                e.Send(cmd + "\n")
-                result, _, _ := e.Expect(vppRE, timeout)
-                log.Printf("%s: result: %s\n", cmd, result)
+	        command := ""
+		for _, each := range n.VPP.CommandsUp {
+			command = strings.Replace(each, "_INTERFACE_NAME_", alias, -1)
+			log.Printf("vpp command run :%s", command)
+			e.Send(command + "\n")
+			result, _, _ := e.Expect(vppRE, timeout)
+			log.Printf("%s: result: %s\n", command, result)
+		}
                 e.Send("quit\n")
 
 		if err := ip.DelLinkByName(args.IfName); err != nil {
